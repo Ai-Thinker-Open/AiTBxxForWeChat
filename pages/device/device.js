@@ -16,6 +16,11 @@ Page({
     })
     console.log(e.detail.value)
   },
+    SendValue:function(e){
+    this.setData({
+      inputText:e.detail.value
+    })
+  },
   SendTap: function() {
     var that = this
     if (that.data.connected) {
