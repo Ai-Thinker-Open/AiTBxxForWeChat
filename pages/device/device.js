@@ -136,6 +136,11 @@ Page({
       receiveText: ''
     })
   },
+   SendValue:function(e){
+    this.setData({
+      inputText:e.detail.value
+    })
+  },
   getNowTime: function() {
     // 加0
     function add_10(num) {
