@@ -27,7 +27,7 @@ Page({
       wx.writeBLECharacteristicValue({
         deviceId: that.data.connectedDeviceId,
         serviceId: that.data.serviceId,
-        characteristicId: that.data.characteristics[0].uuid,
+        characteristicId: "49535343-8841-43F4-A8D4-ECBE34729BB3",
         value: buffer,
         success: function(res) {
           console.log('发送成功')
@@ -60,10 +60,10 @@ Page({
         var index_uuid = -1;
         var UUID_lenght = all_UUID.length;
         /* 遍历服务数组 */
+        console.log(JSON.stringify( res.services))
         for (var index = 0; index < UUID_lenght; index++) {
           var ergodic_UUID = all_UUID[index].uuid; //取出服务里面的UUID
-          /* 判断是否是我们需要的00010203-0405-0607-0809-0A0B0C0D1910*/
-          if (ergodic_UUID == '00010203-0405-0607-0809-0A0B0C0D1910') {
+          if (ergodic_UUID == '55535343-FE7D-4AE5-8FA9-9FAFD205E455') {
             index_uuid = index;
           };
         };
@@ -93,7 +93,7 @@ Page({
               state: true,
               deviceId: options.connectedDeviceId,
               serviceId: that.data.serviceId,
-              characteristicId: that.data.characteristics[0].uuid,
+              characteristicId: '49535343-1E4D-4BD9-BA61-23C647249616',
               success: function(res) {
                 console.log('启用notify成功')
               },
