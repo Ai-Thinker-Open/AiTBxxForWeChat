@@ -1,29 +1,72 @@
-<view class="connect_box">
-    <text class='connect_device_name'>连接设备名：{{name}}</text>
-    <text wx:if="{{connected}}" class="connect_state" catchtap="DisConnectTap">已连接</text>
-    <text wx:else class="connect_state">未连接</text>
-</view>
+<view class="container">
+    <view class="content-scroll">
+        <!-- 顶部状态栏 -->
+        <view class="status-card">
+            <view class="device-name">{{name}}</view>
+            <view class="connection-status {{connected ? 'connected' : 'disconnected'}}">
+                {{connected ? '已连接' : '连接中/已断开'}}
+            </view>
+            <!-- 隐藏UUID显示 -->
+        </view>
 
-<view class="detail_box">
-    <!-- 输入部分 -->
-    <view class="send_box">
-        <textarea class="send_text" maxlength="-1" bindinput="SendValue" value="{{inputText}}" />
-        
-        <view class="send_btn_box">
-            <text class="send_bytes" catchtap='CleanNumberSend'>已发送的数据</text>
-            <text id='send_button' class="send_btn" bindtap="SendTap">发送</text>
-            <text class="send_clean_btn" bindtap="SendCleanTap">清空</text>
+        <!-- 状态提示 -->
+        <view class="status-tips">
+            <view>服务状态: {{serviceFound ? '已发现' : '搜索中...'}}</view>
+            <view>读通道 (Notify): {{notifyReady ? '就绪' : '未就绪'}}</view>
+            <view>写通道 (Write): {{writeReady ? '就绪' : '未就绪'}}</view>
+        </view>
+
+        <!-- 日志区域 -->
+        <view class="log-area">
+            <view class="log-header">
+                <text>接收日志</text>
+                <text class="clear-log" bindtap="clearLog">清空</text>
+            </view>
+            <scroll-view scroll-y class="log-scroll" scroll-top="{{scrollTop}}">
+                <block wx:for="{{logs}}" wx:key="index">
+                    <view class="log-item {{item.type}}">
+                        <text class="log-time">[{{item.time}}]</text>
+                        <text class="log-content">{{item.content}}</text>
+                    </view>
+                </block>
+                <view wx:if="{{logs.length === 0}}" class="empty-log">暂无日志</view>
+            </scroll-view>
+        </view>
+
+        <!-- 操作区域 -->
+        <view class="operation-panel" wx:if="{{connected}}">
+            <view class="write-area" wx:if="{{writeReady}}">
+                <input class="input-box" placeholder="{{isHex ? '请输入HEX (如: AA BB 01)' : '请输入字符串文本内容'}}" value="{{inputText}}" bindinput="onInput" />
+                <view class="input-options">
+                    <checkbox-group bindchange="onTypeChange">
+                        <label>
+                            <checkbox value="hex" checked="{{isHex}}" />HEX发送
+                        </label>
+                    </checkbox-group>
+                    <button type="primary" bindtap="writeBLECharacteristicValue">点击发送</button>
+                </view>
+            </view>
         </view>
     </view>
 
-    <!-- 接受部分 -->
-    <view class="recv_box">
-        <textarea class="revc_text" maxlength="-1" disabled value="{{receiveText}}" />
-        <view class="recv_btn_box">
-            <text class="recv_bytes" catchtap='CleanNumberRecv'>接收到的数据</text>
-            <text class="recv_clean_btn" bindtap="RecvCleanTap">清空</text>
-            <!--  <text class="speed_value">0 B/s</text> -->
+    <!-- 底部快捷指令区域 (固定) -->
+    <view class="footer-commands" wx:if="{{writeReady}}">
+        <view class="status-tips">
+            <text>快捷发送（HEX进制）</text>
+        </view>
+        <view class="command-grid">
+            <view class="cmd-row">
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="00">0x00</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="01">0x01</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="02">0x02</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="03">0x03</button>
+            </view>
+            <view class="cmd-row">
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="04">0x04</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="05">0x05</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="06">0x06</button>
+                <button type="primary" class="cmd-btn" bindtap="sendQuickCommand" data-hex="07">0x07</button>
+            </view>
         </view>
     </view>
-
 </view>

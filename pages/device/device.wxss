@@ -1,141 +1,212 @@
-.connect_box {
+page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 0;
+}
+
+.content-scroll {
+    flex: 1;
     width: 100%;
-    height: 30px;
-    line-height: 30px;
-    font-size: 32rpx;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 20rpx;
+}
+
+.status-card {
+    background: #fff;
+    padding: 20rpx;
+    width: 100%;
+    border-bottom: 1rpx solid #eee;
+    flex-shrink: 0;
+}
+
+.device-name {
+    font-size: 36rpx;
+    font-weight: bold;
+}
+
+.connection-status {
+    font-size: 28rpx;
+    margin-top: 10rpx;
+}
+
+.connected {
+    color: #07c160;
+}
+
+.disconnected {
+    color: #f00;
+}
+
+.status-tips {
+    background: #f8f8f8;
+    padding: 20rpx;
+    width: 100%;
+    font-size: 24rpx;
     color: #666;
-    font-family: "Microsoft YaHei";
-}
-.connect_device_name{
-    float: left;
-    padding-left: 10px;
-    color: #39beff;
+    border-bottom: 1rpx solid #eee;
+    flex-shrink: 0;
 }
 
-.connect_state {
-    float: right;
-    padding-right: 10px;
-    text-decoration: underline;
-    color: #39beff;
+.status-tips view {
+    margin-bottom: 5rpx;
 }
 
-.send_text {
-    height: 100px;
-    width: 90%;
-    border: 2px solid #39beff;
-    margin: 10px auto;
-    padding: 5px;
+.operation-panel {
+    margin-top: 20rpx;
+    background: #fff;
+    padding: 20rpx;
+    width: 94%;
+    margin-left: 3%;
+    border-radius: 10rpx;
+    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
 }
 
-.send_btn_box {
-    width: 92%;
-    margin: auto;
-    font-size: 32rpx;
+.panel-header {
+    font-size: 26rpx;
     color: #333;
-    font-family: "Microsoft YaHei";
-    height: 35px;
-    line-height: 35px;
+    margin-bottom: 20rpx;
+    border-bottom: 1rpx solid #eee;
+    padding-bottom: 10rpx;
+    word-break: break-all;
 }
 
-.send_bytes {
-    display: inline-block;
+.btn-group {
+    display: flex;
+    gap: 20rpx;
+    margin-bottom: 20rpx;
 }
 
-.send_bytes_val {
-    display: inline-block;
-    margin-left: 10px;
-    color: #39beff;
+.write-area {
+    border-top: 1rpx solid #eee;
+    padding-top: 20rpx;
 }
 
-.send_btn {
-    background-color: #eee;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    float: right;
-}
-.send_btn:active{
-    background-color: #d4d4d4;
+.input-box {
+    border: 1rpx solid #ccc;
+    padding: 10rpx;
+    font-size: 28rpx;
+    border-radius: 5rpx;
+    margin-bottom: 10rpx;
 }
 
-.send_clean_btn {
-    background-color: #eee;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    float: right;
-    margin-right: 7px;
-}
-.send_clean_btn:active{
-    background-color: #d4d4d4;
+.input-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 26rpx;
 }
 
-.send_ascii {
-    float: right;
-    margin-right: 10px;
-    color: #39beff;
+/* 日志区域 */
+.log-area {
+    margin-top: 20rpx;
+    margin-left: 3%;
+    width: 94%;
+    background: #333;
+    color: #0f0;
+    padding: 20rpx;
+    border-radius: 10rpx;
+    flex: 1;
+    /* 自动填充剩余空间 */
+    min-height: 300rpx;
+    /* 最小高度 */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
-.send_hex {
-    float: right;
-    margin-right: 18px;
-    color: #39beff;
-    font-size: 36rpx;
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 24rpx;
+    margin-bottom: 10rpx;
+    border-bottom: 1rpx solid #555;
+    padding-bottom: 10rpx;
+    flex-shrink: 0;
 }
 
-.recv_box {
-    margin-top: 15px;
+.clear-log {
+    color: #f00;
 }
 
-.revc_text {
-    width: 90%;
-    height: 550rpx;
-    border: 2px solid grey;
-    margin: 0 auto 10px;
-    padding: 5px;
-    font-size: 25rpx;
+.log-scroll {
+    flex: 1;
+    height: 0;
+    width: 100%;
 }
 
-.recv_btn_box {
-    width: 92%;
-    margin: auto;
-    font-size: 25rpx;
-    color: grey;
-    font-family: "Microsoft YaHei";
-    height: 35px;
-    line-height: 35px;
+.log-item {
+    font-size: 22rpx;
+    margin-bottom: 5rpx;
+    word-break: break-all;
+    font-family: monospace;
 }
 
-.recv_bytes {
-    display: inline-block;
+.log-item.send {
+    color: #ffeb3b;
 }
 
-.recv_bytes_val {
-    display: inline-block;
-    margin-left: 10px;
-    color: grey;
+.log-item.recv {
+    color: #0f0;
 }
 
-.recv_clean_btn {
-    background-color: #eee;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    float: right;
-}
-.recv_clean_btn:active{
-    background-color: #d4d4d4;
+.log-item.info {
+    color: #fff;
 }
 
-.recv_hex {
-    float: right;
-    margin-right: 18px;
-    color: #39beff;
-    font-size: 36rpx;
+.empty-log {
+    color: #666;
+    text-align: center;
+    margin-top: 50rpx;
+    font-size: 24rpx;
 }
 
-.speed_value {
-    float: right;
-    margin-right: 40rpx;
-    color: #39beff;
+/* 底部快捷指令区域 */
+.footer-commands {
+    background: #fff;
+    padding: 20rpx;
+    width: 100%;
+    border-top: 1rpx solid #eee;
+    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    box-sizing: border-box;
+    /* 适配底部安全区 */
+    padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+.command-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15rpx;
+}
+
+.cmd-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15rpx;
+}
+
+.cmd-btn {
+    flex: 1;
+    font-size: 26rpx;
+    padding: 0;
+    background: #f0f0f0;
+    color: #333;
+    border: 1rpx solid #ddd;
+    line-height: 2.5;
+    margin: 0;
+}
+
+.cmd-btn:active {
+    background: #e0e0e0;
 }
