@@ -1,0 +1,51 @@
+{
+  "repository": "Ai-Thinker-Open/AiTBxxForWeChat",
+  "classification": "Demo",
+  "code_entry": {
+    "status": "verified",
+    "entry_points": [
+      "app.js:App.onLaunch",
+      "pages/index/index.wxml:toggleSearch",
+      "pages/device/device.js:onLoad"
+    ],
+    "evidence": [
+      "app.json declares both page routes and every page file exists",
+      "all WXML event handlers resolve to page methods",
+      "mock tests execute discovery, navigation, connection, Notify, and send paths"
+    ]
+  },
+  "architecture": {
+    "status": "verified",
+    "modules": [
+      "application configuration",
+      "BLE discovery page",
+      "device session",
+      "Notify and write data channel",
+      "shared BLE utilities",
+      "validation harness"
+    ],
+    "init_flow": [
+      "App launch",
+      "search page",
+      "Bluetooth discovery",
+      "selected device route",
+      "BLE connection",
+      "service and characteristic discovery",
+      "Notify and data exchange"
+    ]
+  },
+  "validation": {
+    "status": "passed",
+    "commit": "d1a81206b0cbaa60e5ba7acc01e2199db472f75c",
+    "environment": {
+      "os": "Windows NT 10.0.26200.0",
+      "runtime": "Node.js v24.14.0"
+    },
+    "syntax_files": 5,
+    "logic_groups": 10,
+    "errors": 0,
+    "warnings": 0,
+    "log": "docs/validation-logs/AiTBxxForWeChat-validation.log",
+    "physical_device_tested": false
+  }
+}

@@ -1,0 +1,26 @@
+Repository: Ai-Thinker-Open/AiTBxxForWeChat
+Commit: d1a81206b0cbaa60e5ba7acc01e2199db472f75c
+Environment: Windows Microsoft Windows NT 10.0.26200.0
+Node: v24.14.0
+Command: node --check <each tracked JavaScript file>
+PASS syntax app.js
+PASS syntax pages/device/device.js
+PASS syntax pages/index/index.js
+PASS syntax tools/validate.js
+PASS syntax utils/ble-utils.js
+Command: node tools/validate.js
+PASS project JSON and declared pages
+PASS WXML event handlers resolve to page methods
+PASS UUID matching is normalized but remains exact
+PASS device upsert and name filtering do not mutate input
+PASS HEX and UTF-8 conversions round-trip
+PASS discovery failure resets retry state and listener registration is idempotent
+PASS navigation safely encodes device identifiers and names
+PASS connection changes are filtered by device
+PASS Notify becomes ready only after subscription succeeds
+PASS long BLE writes are split into ordered 20-byte chunks
+PASS UI log storage is capped
+RESULT 10/10 validation groups passed
+Errors: 0
+Warnings: 0
+RESULT: PASS
