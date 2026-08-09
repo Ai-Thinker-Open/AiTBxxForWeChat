@@ -1,93 +1,96 @@
-# 安信可模组微信小程序蓝牙调试助手
+[![中文](https://img.shields.io/badge/中文-README-blue)](README.zh.md)
 
-这是一个基于原生微信小程序开发的蓝牙调试工具，专为安信可COMBOAT蓝牙模组设备调试设计。项目不依赖第三方框架，代码简洁易维护。
+# Ai-Thinker BLE Debugging Assistant for WeChat Mini Program
 
-## ✨ 主要功能
+## Project overview
 
-*   **🔍 蓝牙搜索与过滤**：支持实时搜索周边 BLE 设备，并可通过名称关键字实时过滤列表。
-*   **🔗 自动连接与配置**：
-    *   连接后自动寻找目标服务 UUID (`55535343-FE7D-4AE5-8FA9-9FAFD205E455`)。
-    *   自动识别并配置写特征值 (`49535343-8841-43F4-A8D4-ECBE34729BB3`) 和通知特征值 (`49535343-1E4D-4BD9-BA61-23C647249616`)。
-    *   自动开启 Notify 通知，无需手动操作。
-*   **📡 数据通讯**：
-    *   **发送**：支持 **文本** 和 **HEX (16进制)** 两种输入模式。
-    *   **接收**：实时显示接收到的数据（同时显示 HEX 和 ASCII 字符串）。
-    *   **快捷指令**：底部集成 8 个快捷按钮 (`0x00` - `0x07`)，方便快速调试。
-*   **📝 实时日志**：独立的日志区域，清晰展示发送、接收和系统状态信息。
+AiTBxxForWeChat is a native WeChat Mini Program Demo for discovering, connecting to, and exchanging data with Ai-Thinker BLE devices. The current configuration targets the COMBOAT/TB-series transparent-transmission service and does not require a third-party JavaScript framework.
 
-## 🚀 使用步骤
+## Features
 
-1.  **导入项目**
-    *   打开 **微信开发者工具**。
-    *   选择“导入项目”，目录指向本项目根目录。
-    *   AppID 可使用测试号或自己的 AppID。
+- Discover nearby BLE peripherals and filter them by advertised name.
+- Connect to a selected device and discover the configured service and characteristics.
+- Subscribe to notifications only after the characteristic and its properties are verified.
+- Send text as UTF-8 or validated hexadecimal bytes.
+- Split long writes into ordered 20-byte chunks for conservative cross-platform BLE operation.
+- Display bounded transmit, receive, connection, and error logs.
+- Send eight one-byte quick commands from `0x00` through `0x07`.
 
-2.  **真机调试**
-    *   由于电脑端模拟器的蓝牙功能受限，**必须使用真机**进行测试。
-    *   点击开发者工具的“真机调试”或“预览”，扫描二维码在手机上运行。
+## Setup requirements
 
-3.  **蓝牙搜索**
-    *   确保手机蓝牙已打开，并授权微信小程序使用蓝牙权限。
-    *   点击“搜索蓝牙设备”开始扫描。
-    *   在输入框输入设备名称关键字（如 "Test"）可快速筛选目标设备。
+- WeChat Developer Tools.
+- A physical iOS or Android device with Bluetooth enabled; the desktop simulator cannot complete real BLE validation.
+- A compatible peripheral exposing the UUIDs listed below.
+- Bluetooth and location permissions required by the device platform and WeChat version.
 
-4.  **设备通讯**
-    *   点击设备列表中的“连接”按钮。
-    *   进入详情页后，程序会自动连接并配置服务。
-    *   **状态检查**：顶部状态栏显示“已连接”，且“读/写通道”均显示“就绪”时即可开始通讯。
-    *   **发送数据**：
-        *   勾选 "HEX发送"：输入如 `AA BB 01`（空格可选）。
-        *   不勾选：直接输入文本字符串。
-    *   **查看日志**：中间区域会实时滚动显示收发的数据包。
+## Import and run
 
-## ⚙️ 关键配置 (UUID)
+1. Clone or download this repository.
+2. Open WeChat Developer Tools and choose **Import Project**.
+3. Select the repository root—the directory containing `app.json` and `project.config.json`.
+4. Use the configured AppID, a test AppID, or your own AppID as appropriate.
+5. Choose preview or real-device debugging and authorize Bluetooth access.
+6. Tap **Search Bluetooth Devices**, select the target peripheral, and wait until the connection, Write, and Notify states are ready.
 
-在 `miniprogram/pages/device/device.js` 文件头部，可以修改目标设备的 UUID 配置：
+## Usage examples
 
-```javascript
-// 定义固定UUID常量
-const TARGET_SERVICE_UUID = '55535343-FE7D-4AE5-8FA9-9FAFD205E455';         // 目标服务 UUID (模糊匹配)
-const CHAR_UUID_WRITE = '49535343-8841-43F4-A8D4-ECBE34729BB3';             // 写特征值 UUID
-const CHAR_UUID_READ_NOTIFY = '49535343-1E4D-4BD9-BA61-23C647249616';       // 读/通知特征值 UUID
+- Text mode: enter `hello` or `安信可`; the application encodes the string as UTF-8 before sending.
+- HEX mode: enter `AA BB 01` or `AABB01`; non-hexadecimal or odd-length input is rejected.
+- Quick commands: tap one of the fixed buttons to send a single byte from `00` to `07`.
+
+## BLE configuration
+
+The constants are defined at the top of `pages/device/device.js`:
+
+| Purpose | UUID |
+| --- | --- |
+| Primary service | `55535343-FE7D-4AE5-8FA9-9FAFD205E455` |
+| Write characteristic | `49535343-8841-43F4-A8D4-ECBE34729BB3` |
+| Notify characteristic | `49535343-1E4D-4BD9-BA61-23C647249616` |
+
+UUID comparison is case-insensitive and ignores hyphens, but remains an exact match. A characteristic is accepted only when its advertised properties support the required Write or Notify/Indicate operation.
+
+## Code flow
+
+1. `app.json` registers the search and device pages.
+2. `pages/index/index.js` opens the Bluetooth adapter, starts discovery, deduplicates and filters advertisements, stops discovery, and safely navigates with the selected device data.
+3. `pages/device/device.js` connects, discovers the target service and characteristics, subscribes to notifications, and exposes text/HEX send operations.
+4. `utils/ble-utils.js` provides exact UUID matching, immutable device-list helpers, safe query decoding, and HEX/UTF-8 conversion.
+5. Page unload handlers unregister listeners and close the BLE connection or adapter.
+
+Detailed evidence:
+
+- [Code entry](docs/CODE_ENTRY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Validation](docs/VALIDATION.md)
+
+## Local validation
+
+With Node.js available, run:
+
+```powershell
+node --check pages/index/index.js
+node --check pages/device/device.js
+node tools/validate.js
 ```
 
-*注：代码使用 `includes` 进行匹配，因此支持 16 位或 128 位 UUID。*
+The validation script checks project/page declarations, WXML handlers, UUID matching, device filtering, UTF-8/HEX conversion, retry state, listener registration, navigation encoding, connection-event filtering, Notify readiness, BLE chunking, and the log limit.
 
-## 🛠️ 关键函数说明
+## Troubleshooting
 
-### 1. 蓝牙初始化与搜索 (`pages/index/index.js`)
+- **Bluetooth cannot initialize:** enable Bluetooth, grant WeChat permissions, and retry on a physical device.
+- **No devices appear:** verify the peripheral is advertising a non-empty name and move it closer to the phone.
+- **Target service is missing:** confirm the peripheral firmware exposes the exact configured service UUID.
+- **Write or Notify is not ready:** confirm both characteristic UUIDs and their advertised properties.
+- **Write fails:** reduce traffic frequency, reconnect the device, and inspect which chunk failed in the log.
+- **Received text looks binary:** use the HEX view; arbitrary BLE payloads are not necessarily UTF-8 text.
 
-*   `openBluetoothAdapter()`: 初始化蓝牙模块，检查蓝牙开关状态。
-*   `startBluetoothDevicesDiscovery()`: 开始搜寻附近的蓝牙外围设备。
-*   `onBluetoothDeviceFound()`: 监听寻找到新设备的事件，并结合 `filterDevices()` 实现列表去重和过滤。
+## Contribution and validation boundary
 
-### 2. 连接与服务发现 (`pages/device/device.js`)
+Keep changes focused and include the phone OS, WeChat version, peripheral firmware, reproduction steps, and logs in pull requests. Do not commit credentials, private AppIDs, captured personal data, or device secrets.
 
-*   `createBLEConnection(deviceId)`: 连接低功耗蓝牙设备。
-*   `getBLEDeviceServices(deviceId)`: 获取蓝牙设备所有服务 (Services)，并筛选出 `TARGET_SERVICE_UUID`。
-*   `getBLEDeviceCharacteristics(deviceId, serviceId)`: 获取蓝牙设备某个服务中所有特征值 (Characteristics)，并定位读写特征值。
+Automated validation uses mocks and does not prove Bluetooth radio behavior. The repository has not been verified here with WeChat Developer Tools, a phone, a TB-series module, or production traffic. Real-device discovery, permission behavior, MTU negotiation, connection recovery, throughput, and protocol semantics still require manual acceptance testing.
 
-### 3. 数据收发 (`pages/device/device.js`)
+## License
 
-*   `notifyBLECharacteristicValueChange(enable)`: 启用低功耗蓝牙设备特征值变化时的 notify 功能，订阅数据上报。
-*   `writeBLECharacteristicValue()`: 向低功耗蓝牙设备特征值写入二进制数据。
-    *   内部调用 `hexStringToArrayBuffer` 将 HEX 字符串转为 `ArrayBuffer`。
-    *   内部调用 `stringToBuffer` 将文本转为 `ArrayBuffer`。
-*   `onBLECharacteristicValueChange()`: 监听低功耗蓝牙设备的特征值变化（接收数据），并解析为 HEX 和 String 格式显示在日志中。
-
-## 📂 目录结构
-
-```text
-miniprogram/
-├── pages/
-│   ├── index/          # 首页：蓝牙搜索与列表过滤
-│   │   ├── index.js    # 搜索逻辑
-│   │   ├── index.wxml  # 搜索界面
-│   │   └── index.wxss  # 样式文件
-│   └── device/         # 详情页：连接与通讯
-│       ├── device.js   # 通讯核心逻辑 (连接/读写/解析)
-│       ├── device.wxml # 通讯界面 (日志/按钮/输入框)
-│       └── device.wxss # 样式文件
-├── app.js              # 全局逻辑
-└── app.json            # 全局配置
-```
+This repository currently has no repository-level license file. Do not assume redistribution rights beyond those granted by the copyright holder.
