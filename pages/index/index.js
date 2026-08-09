@@ -1,3 +1,5 @@
+const BleUtils = require('../../utils/ble-utils')
+
 Page({
   data: {
     devices: [], // 原始设备列表
@@ -14,6 +16,10 @@ Page({
   },
 
   onUnload() {
+    if (this._deviceFoundHandler && wx.offBluetoothDeviceFound) {
+      wx.offBluetoothDeviceFound(this._deviceFoundHandler)
+      this._deviceFoundHandler = null
+    }
     this.closeBluetoothAdapter()
   },
 
@@ -58,6 +64,17 @@ Page({
         })
         this.onBluetoothDeviceFound()
       },
+      fail: (res) => {
+        this._discoveryStarted = false
+        this.setData({
+          searching: false,
+          status: '搜索启动失败'
+        })
+        wx.showToast({
+          title: res.errMsg || '搜索启动失败',
+          icon: 'none'
+        })
+      }
     })
   },
 
@@ -71,25 +88,19 @@ Page({
   },
 
   onBluetoothDeviceFound() {
-    wx.onBluetoothDeviceFound((res) => {
-      res.devices.forEach(device => {
+    if (this._deviceFoundHandler) return
+
+    this._deviceFoundHandler = (res) => {
+      let foundDevices = this.data.devices.slice()
+      ;(res.devices || []).forEach(device => {
         if (!device.name && !device.localName) {
           return
         }
-        const foundDevices = this.data.devices
-        const idx = foundDevices.findIndex(d => d.deviceId === device.deviceId)
-        
-        // 更新原始列表
-        if (idx === -1) {
-          foundDevices.push(device)
-        } else {
-          foundDevices[idx] = device
-        }
-        
-        // 触发过滤逻辑
-        this.filterDevices(foundDevices)
+        foundDevices = BleUtils.upsertDevice(foundDevices, device)
       })
-    })
+      this.filterDevices(foundDevices)
+    }
+    wx.onBluetoothDeviceFound(this._deviceFoundHandler)
   },
 
   // 过滤输入处理
@@ -101,18 +112,11 @@ Page({
 
   // 执行过滤
   filterDevices(devices) {
-    const keyword = this.data.filterName.toLowerCase()
-    let result = devices
-    
-    if (keyword) {
-      result = devices.filter(d => {
-        const name = (d.name || d.localName || '').toLowerCase()
-        return name.includes(keyword)
-      })
-    }
+    const source = (devices || []).slice()
+    const result = BleUtils.filterDevices(source, this.data.filterName)
     
     this.setData({
-      devices: devices, // 更新原始数据
+      devices: source, // 更新原始数据
       filteredDevices: result // 更新显示数据
     })
   },
@@ -125,7 +129,7 @@ Page({
     this.stopBluetoothDevicesDiscovery()
     
     wx.navigateTo({
-      url: `/pages/device/device?deviceId=${deviceId}&name=${encodeURIComponent(name)}`,
+      url: `/pages/device/device?deviceId=${encodeURIComponent(deviceId)}&name=${encodeURIComponent(name || '')}`,
     })
   },
 

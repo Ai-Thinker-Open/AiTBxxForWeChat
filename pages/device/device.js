@@ -2,6 +2,9 @@
 const TARGET_SERVICE_UUID = "55535343-FE7D-4AE5-8FA9-9FAFD205E455";
 const CHAR_UUID_WRITE = "49535343-8841-43F4-A8D4-ECBE34729BB3";
 const CHAR_UUID_READ_NOTIFY = "49535343-1E4D-4BD9-BA61-23C647249616";
+const BLE_WRITE_CHUNK_SIZE = 20;
+const MAX_LOG_ENTRIES = 200;
+const BleUtils = require('../../utils/ble-utils');
 
 Page({
     data: {
@@ -21,8 +24,8 @@ Page({
     },
 
     onLoad(options) {
-        const deviceId = options.deviceId
-        const name = decodeURIComponent(options.name || '')
+        const deviceId = BleUtils.safeDecodeURIComponent(options.deviceId)
+        const name = BleUtils.safeDecodeURIComponent(options.name)
         this.setData({
             deviceId,
             name
@@ -38,6 +41,15 @@ Page({
     },
 
     onUnload() {
+        if (this._connectionStateHandler && wx.offBLEConnectionStateChange) {
+            wx.offBLEConnectionStateChange(this._connectionStateHandler)
+            this._connectionStateHandler = null
+        }
+        if (this._valueChangeHandler && wx.offBLECharacteristicValueChange) {
+            wx.offBLECharacteristicValueChange(this._valueChangeHandler)
+            this._valueChangeHandler = null
+            this._isListening = false
+        }
         this.closeBLEConnection()
     },
 
@@ -52,6 +64,9 @@ Page({
                 wx.setBLEMTU({
                   deviceId: deviceId,
                   mtu: 240,
+                  fail: (res) => {
+                    this.addLog(`MTU设置未生效，将使用20字节分包: ${res.errMsg}`, 'info')
+                  }
                 })
 
                 this.setData({
@@ -69,7 +84,8 @@ Page({
             }
         })
         // 监听连接状态
-        wx.onBLEConnectionStateChange((res) => {
+        this._connectionStateHandler = (res) => {
+            if (res.deviceId && res.deviceId !== this.data.deviceId) return
             this.setData({
                 connected: res.connected
             })
@@ -85,16 +101,24 @@ Page({
                     icon: 'none'
                 })
             }
-        })
+        }
+        wx.onBLEConnectionStateChange(this._connectionStateHandler)
     },
 
     closeBLEConnection() {
+        if (!this.data.deviceId) return
         wx.closeBLEConnection({
             deviceId: this.data.deviceId
         })
         this.setData({
-            connected: false
+            connected: false,
+            serviceFound: false,
+            writeReady: false,
+            notifyReady: false
         })
+        this._serviceId = null
+        this._writeCharId = null
+        this._notifyCharId = null
     },
 
     // 2. 获取服务
@@ -103,7 +127,7 @@ Page({
             deviceId,
             success: (res) => {
                 // 寻找目标服务
-                const targetService = res.services.find(s => s.uuid.toUpperCase().includes(TARGET_SERVICE_UUID))
+                const targetService = res.services.find(s => BleUtils.uuidMatches(s.uuid, TARGET_SERVICE_UUID))
                 if (targetService) {
                     this.setData({
                         serviceFound: true
@@ -133,7 +157,10 @@ Page({
             serviceId,
             success: (res) => {
                 // 寻找写特征值 
-                const writeChar = res.characteristics.find(c => c.uuid.toUpperCase().includes(CHAR_UUID_WRITE))
+                const writeChar = res.characteristics.find(c =>
+                    BleUtils.uuidMatches(c.uuid, CHAR_UUID_WRITE) &&
+                    c.properties && (c.properties.write || c.properties.writeNoResponse)
+                )
                 if (writeChar) {
                     this._writeCharId = writeChar.uuid
                     this.setData({
@@ -143,18 +170,18 @@ Page({
                 }
 
                 // 寻找读/通知特征值
-                const notifyChar = res.characteristics.find(c => c.uuid.toUpperCase().includes(CHAR_UUID_READ_NOTIFY))
+                const notifyChar = res.characteristics.find(c =>
+                    BleUtils.uuidMatches(c.uuid, CHAR_UUID_READ_NOTIFY) &&
+                    c.properties && (c.properties.notify || c.properties.indicate)
+                )
                 if (notifyChar) {
                     this._notifyCharId = notifyChar.uuid
-                    this.setData({
-                        notifyReady: true
-                    })
                     // 自动开启通知
                     this.notifyBLECharacteristicValueChange(true)
                 }
 
-                if (!writeChar && !notifyChar) {
-                    this.addLog('未找到指定的特征值 ' + CHAR_UUID_READ_NOTIFY, 'info')
+                if (!writeChar || !notifyChar) {
+                    this.addLog('缺少具备正确属性的写入或通知特征值', 'info')
                     wx.showToast({
                         title: '特征值不匹配',
                         icon: 'none'
@@ -178,12 +205,14 @@ Page({
             serviceId: this._serviceId,
             characteristicId: this._notifyCharId,
             success: (res) => {
+                this.setData({ notifyReady: enable })
                 this.addLog(`通知已${enable ? '开启' : '关闭'}`, 'info')
                 if (enable) {
                     this.initValueChangeListener()
                 }
             },
             fail: (res) => {
+                this.setData({ notifyReady: false })
                 this.addLog(`Notify操作失败: ${res.errMsg}`, 'info')
             }
         })
@@ -194,14 +223,16 @@ Page({
         if (this._isListening) return
         this._isListening = true
 
-        wx.onBLECharacteristicValueChange((res) => {
+        this._valueChangeHandler = (res) => {
             // 过滤特征值，只处理
-            if (res.characteristicId.toUpperCase().includes(CHAR_UUID_READ_NOTIFY)) {
+            if (res.deviceId === this.data.deviceId &&
+                BleUtils.uuidMatches(res.characteristicId, CHAR_UUID_READ_NOTIFY)) {
                 const hex = this.ab2hex(res.value)
                 const str = this.hexCharCodeToStr(res.value)
                 this.addLog(`收到数据: \r\nHex格式=${hex}\r\nString格式=${str}`, 'recv')
             }
-        })
+        }
+        wx.onBLECharacteristicValueChange(this._valueChangeHandler)
     },
 
     // 5. 写入数据 (使用固定特征值)
@@ -295,27 +326,46 @@ Page({
 
     // 统一发送 Buffer
     _sendBuffer(buffer, logMsg) {
-        wx.writeBLECharacteristicValue({
-            deviceId: this.data.deviceId,
-            serviceId: this._serviceId,
-            characteristicId: this._writeCharId,
-            value: buffer,
-            success: () => {
-                this.addLog(`发送成功: ${logMsg}`, 'send')
-                wx.showToast({
-                    title: '发送成功',
-                    icon: 'success',
-                    duration: 1000
-                })
-            },
-            fail: (res) => {
-                this.addLog(`发送失败: ${res.errMsg}`, 'info')
-                wx.showToast({
-                    title: '发送失败',
-                    icon: 'none'
-                })
-            }
-        })
+        const bytes = new Uint8Array(buffer)
+        const totalChunks = Math.ceil(bytes.length / BLE_WRITE_CHUNK_SIZE)
+        let offset = 0
+
+        const writeNextChunk = () => {
+            const end = Math.min(offset + BLE_WRITE_CHUNK_SIZE, bytes.length)
+            const chunkBytes = new Uint8Array(end - offset)
+            chunkBytes.set(bytes.subarray(offset, end))
+
+            wx.writeBLECharacteristicValue({
+                deviceId: this.data.deviceId,
+                serviceId: this._serviceId,
+                characteristicId: this._writeCharId,
+                value: chunkBytes.buffer,
+                success: () => {
+                    offset = end
+                    if (offset < bytes.length) {
+                        setTimeout(writeNextChunk, 20)
+                        return
+                    }
+                    const chunkInfo = totalChunks > 1 ? `，共${totalChunks}包` : ''
+                    this.addLog(`发送成功${chunkInfo}: ${logMsg}`, 'send')
+                    wx.showToast({
+                        title: '发送成功',
+                        icon: 'success',
+                        duration: 1000
+                    })
+                },
+                fail: (res) => {
+                    const failedChunk = Math.floor(offset / BLE_WRITE_CHUNK_SIZE) + 1
+                    this.addLog(`发送失败（第${failedChunk}/${totalChunks}包）: ${res.errMsg}`, 'info')
+                    wx.showToast({
+                        title: '发送失败',
+                        icon: 'none'
+                    })
+                }
+            })
+        }
+
+        writeNextChunk()
     },
 
     // 工具函数
@@ -326,8 +376,7 @@ Page({
             content,
             type
         }
-        const logs = this.data.logs
-        logs.push(log)
+        const logs = this.data.logs.concat(log).slice(-MAX_LOG_ENTRIES)
         this.setData({
             logs,
             scrollTop: logs.length * 100
@@ -342,48 +391,21 @@ Page({
 
     // ArrayBuffer转16进制字符串
     ab2hex(buffer) {
-        let hexArr = Array.prototype.map.call(
-            new Uint8Array(buffer),
-            function (bit) {
-                return ('00' + bit.toString(16)).slice(-2)
-            }
-        )
-        return hexArr.join(' ').toUpperCase()
+        return BleUtils.bytesToHex(new Uint8Array(buffer))
     },
 
     // 16进制字符串转ArrayBuffer
     hexStringToArrayBuffer(str) {
-        if (!str) return new ArrayBuffer(0)
-        var buffer = new ArrayBuffer(str.length / 2)
-        let dataView = new DataView(buffer)
-        let ind = 0
-        for (var i = 0, len = str.length; i < len; i += 2) {
-            let code = parseInt(str.substr(i, 2), 16)
-            dataView.setUint8(ind, code)
-            ind++
-        }
-        return buffer
+        return new Uint8Array(BleUtils.hexToBytes(str)).buffer
     },
 
     // 字符串转ArrayBuffer
     stringToBuffer(str) {
-        let val = str
-        let length = val.length
-        let buffer = new ArrayBuffer(length)
-        let uint8 = new Uint8Array(buffer)
-        for (let i = 0; i < length; i++) {
-            uint8[i] = val.charCodeAt(i)
-        }
-        return buffer
+        return new Uint8Array(BleUtils.stringToUtf8Bytes(str)).buffer
     },
 
     // HEX转字符串
     hexCharCodeToStr(hexCharCodeStr) {
-        var arr = Array.prototype.map.call(new Uint8Array(hexCharCodeStr), x => x)
-        var str = ''
-        for (var i = 0; i < arr.length; i++) {
-          str += String.fromCharCode(arr[i])
-        }
-        return str
+        return BleUtils.bytesToUtf8String(new Uint8Array(hexCharCodeStr))
     }
 })
